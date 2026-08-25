@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
-from dataclasses import replace
+from dataclasses import asdict, replace
 import json
 import math
 from pathlib import Path
@@ -15,7 +15,6 @@ sys.path.insert(0, str(ROOT))
 from localization_sim.accuracy import AccuracyConfig, run_trial
 
 
-SEED_BASE = 20260614
 SWEEPS = {
     "hello": [10, 20, 30, 50, 75, 100, 150],
     "nodes": [100, 125, 150, 175, 200, 225, 250],
@@ -53,9 +52,10 @@ def varied(config: AccuracyConfig, sweep: str, value: float) -> AccuracyConfig:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the paper parameter sweeps.")
+    parser = argparse.ArgumentParser(description="Run reproducible localization parameter sweeps.")
     parser.add_argument("--config", type=Path, default=Path("configs/default.json"))
     parser.add_argument("--output", type=Path, default=Path("results/sweeps"))
+    parser.add_argument("--seed-base", type=int, default=20260614)
     parser.add_argument("--seeds", type=int, default=10)
     parser.add_argument("--sweeps", nargs="+", choices=sorted(SWEEPS), default=sorted(SWEEPS))
     args = parser.parse_args()
@@ -65,7 +65,7 @@ def main() -> None:
         for value in SWEEPS[sweep]:
             config = varied(base, sweep, value)
             for offset in range(args.seeds):
-                seed = SEED_BASE + offset
+                seed = args.seed_base + offset
                 for name, method, weighted, max_iterations in ALGORITHMS:
                     try:
                         result = run_trial(config, seed, method, weighted, max_iterations)
@@ -119,6 +119,17 @@ def main() -> None:
             writer = csv.DictWriter(handle, fieldnames=list(data[0]))
             writer.writeheader()
             writer.writerows(data)
+    resolved = {
+        "simulation": asdict(base),
+        "experiment": {
+            "seed_base": args.seed_base,
+            "seeds": args.seeds,
+            "sweeps": {name: SWEEPS[name] for name in args.sweeps},
+        },
+    }
+    (args.output / "resolved_config.json").write_text(
+        json.dumps(resolved, indent=2), encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

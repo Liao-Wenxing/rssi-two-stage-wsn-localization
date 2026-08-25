@@ -35,6 +35,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run reproducible CML-WLS accuracy trials.")
     parser.add_argument("--config", type=Path, default=Path("configs/default.json"))
     parser.add_argument("--output", type=Path, default=Path("results/accuracy"))
+    parser.add_argument("--seed-base", type=int, default=20260614)
     parser.add_argument("--seeds", type=int, default=10)
     args = parser.parse_args()
 
@@ -48,7 +49,7 @@ def main() -> None:
     ]
     detail: list[dict] = []
     for offset in range(args.seeds):
-        seed = 20260614 + offset
+        seed = args.seed_base + offset
         for name, local_method, weighted, max_iterations in algorithms:
             try:
                 result = run_trial(config, seed, local_method, weighted, max_iterations)
@@ -107,8 +108,12 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     write_csv(args.output / "detail.csv", detail)
     write_csv(args.output / "summary.csv", summary)
+    resolved = {
+        "simulation": asdict(config),
+        "experiment": {"seed_base": args.seed_base, "seeds": args.seeds},
+    }
     (args.output / "resolved_config.json").write_text(
-        json.dumps(asdict(config), indent=2), encoding="utf-8"
+        json.dumps(resolved, indent=2), encoding="utf-8"
     )
     for row in summary:
         print(

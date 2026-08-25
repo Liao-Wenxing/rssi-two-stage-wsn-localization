@@ -144,11 +144,12 @@ def ci95(values: list[float]) -> float:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the event-driven report collection study.")
     parser.add_argument("--output", type=Path, default=Path("results/routing"))
+    parser.add_argument("--seed-base", type=int, default=20260614)
     parser.add_argument("--seeds", type=int, default=10)
     parser.add_argument("--max-seconds", type=float, default=180.0)
     args = parser.parse_args()
     rows = [
-        run_one(name, 20260614 + offset, args.max_seconds)
+        run_one(name, args.seed_base + offset, args.max_seconds)
         for offset in range(args.seeds)
         for name in ("AODV", "CTP", "LEACH-M", "Flooding")
     ]
@@ -185,6 +186,15 @@ def main() -> None:
         writer = csv.DictWriter(handle, fieldnames=list(summary[0]))
         writer.writeheader()
         writer.writerows(summary)
+    resolved = {
+        "seed_base": args.seed_base,
+        "seeds": args.seeds,
+        "max_seconds": args.max_seconds,
+        "protocols": ["AODV", "CTP", "LEACH-M", "Flooding"],
+    }
+    (args.output / "resolved_config.json").write_text(
+        json.dumps(resolved, indent=2), encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2))
 
 

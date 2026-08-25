@@ -47,28 +47,26 @@ python -m pip install -e ".[test]"
 ## Accuracy Experiment
 
 ```bash
-python experiments/run_accuracy.py --config configs/default.json --seeds 10
+python experiments/run_accuracy.py --config configs/default.json \
+  --seed-base 20260614 --seeds 10
 ```
 
 The command writes trial-level and aggregate CSV files under
-`results/accuracy/`.
-
-With the default configuration and seed base `20260614`, nine of ten graphs
-are identifiable. The reference conditional RMSE is approximately 7.82 m for
-CML-WLS and 9.17 m for the unit-weight CML-NLS ablation. Runtime varies by
-machine.
+`results/accuracy/`, together with the resolved simulation and experiment
+configuration.
 
 To rebuild the parameter sweeps and figures:
 
 ```bash
-python experiments/run_sweeps.py --seeds 10
+python experiments/run_sweeps.py --seed-base 20260614 --seeds 10
 python experiments/plot_sweeps.py
 ```
 
 ## Event-Driven Collection Experiment
 
 ```bash
-python experiments/run_routing.py --seeds 10 --max-seconds 180
+python experiments/run_routing.py --seed-base 20260614 --seeds 10 \
+  --max-seconds 180
 ```
 
 Routing changes report collection time and transmission cost. It is not used
@@ -96,7 +94,9 @@ between packet reception and RSSI censoring.
 - The analytical information reference assumes independent Gaussian packets.
   The empirical generator uses first-order correlation, so the reference is a
   design diagnostic rather than the exact CRLB of the full packet process.
-- No wall attenuation or node mobility is enabled by the paper configuration.
+- No wall attenuation or node mobility is enabled by the default configuration.
+- Generated tables, figures, logs, and CSV files are written below `results/`
+  and are intentionally excluded from version control.
 
 ## License
 

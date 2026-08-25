@@ -36,7 +36,7 @@ def main() -> None:
     text = r"""
 \begin{table}[!t]
 \centering
-\caption{Routing-layer collection performance. Values are mean $\pm$ 95\% CI over ten random seeds; incomplete collection trials use the 180-s horizon.}
+\caption{Routing-layer collection performance reported as mean $\pm$ 95\% CI.}
 \label{tab:routing_ci}
 \scriptsize
 \begin{tabular}{lccc}
