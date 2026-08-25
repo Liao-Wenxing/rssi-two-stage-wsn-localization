@@ -1,0 +1,16 @@
+{
+  "area_m": 300.0,
+  "node_count": 150,
+  "anchor_ratio": 0.15,
+  "r50_m": 60.0,
+  "hello_count": 50,
+  "minimum_reception_ratio": 0.5,
+  "tx_power_dbm": 0.0,
+  "path_loss_at_1m_db": 40.0,
+  "path_loss_exponent": 2.4,
+  "total_rssi_sigma_db": 4.0,
+  "static_bias_sigma_db": 1.5,
+  "fast_correlation": 0.55,
+  "base_loss_probability": 0.02,
+  "isolation_factor": 2.0
+}
