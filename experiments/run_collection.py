@@ -68,7 +68,6 @@ def run_one(name: str, seed: int, max_seconds: float) -> dict:
         static_link_bias_sigma_db=1.5,
         fast_rssi_correlation=0.55,
         base_link_loss_probability=0.02,
-        enable_walls=False,
         mac_model="csma_ca",
         localization_hello_window_count=10,
         localization_min_hello_samples=5,
@@ -143,9 +142,9 @@ def ci95(values: list[float]) -> float:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the event-driven report collection study.")
-    parser.add_argument("--output", type=Path, default=Path("results/routing"))
+    parser.add_argument("--output", type=Path, default=Path("results/localization/collection"))
     parser.add_argument("--seed-base", type=int, default=20260614)
-    parser.add_argument("--seeds", type=int, default=10)
+    parser.add_argument("--seeds", type=int, default=20)
     parser.add_argument("--max-seconds", type=float, default=180.0)
     args = parser.parse_args()
     rows = [

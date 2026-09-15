@@ -6,7 +6,7 @@ import math
 from collections import deque
 from random import Random
 
-from .channel import ChannelResult, PathLossWallChannel
+from .channel import ChannelResult, PathLossChannel
 from .config import LocalizationSimConfig
 from .metrics import SimMetrics
 from .models import (
@@ -20,7 +20,6 @@ from .models import (
     Packet,
     PacketTransmission,
     Position,
-    WallSegment,
 )
 from .protocols import BROADCAST_NEXT_HOP
 from .rssi_estimators import estimate_censored_rssi
@@ -32,8 +31,7 @@ class LocalizationSimulator:
         self.routing_protocol = routing_protocol
         self.rng = Random(config.seed)
         self.nodes: list[Node] = []
-        self.walls: list[WallSegment] = []
-        self.channel = PathLossWallChannel(
+        self.channel = PathLossChannel(
             rx_threshold_dbm=config.rx_threshold_dbm,
             path_loss_at_1m_db=config.path_loss_at_1m_db,
             path_loss_exponent=config.path_loss_exponent,
@@ -71,7 +69,6 @@ class LocalizationSimulator:
         self.wireless_isolation_distance_m = 0.0
 
         self._deploy_nodes()
-        self._generate_walls()
         self.half_success_distance_m = self._estimate_half_success_distance()
         self.wireless_isolation_distance_m = (
             config.wireless_isolation_distance_m
@@ -131,21 +128,6 @@ class LocalizationSimulator:
                 y = self.rng.uniform(0.0, self.config.area_height_m)
             self.nodes.append(Node(node_id, Position(x, y)))
 
-    def _generate_walls(self) -> None:
-        if not self.config.enable_walls:
-            return
-        for idx in range(self.config.random_wall_count):
-            if idx % 2 == 0:
-                x = self.rng.uniform(self.config.area_width_m * 0.2, self.config.area_width_m * 0.8)
-                y1 = self.rng.uniform(0.0, self.config.area_height_m * 0.35)
-                y2 = self.rng.uniform(self.config.area_height_m * 0.65, self.config.area_height_m)
-                self.walls.append(WallSegment(x, y1, x, y2, self.config.wall_attenuation_db))
-            else:
-                y = self.rng.uniform(self.config.area_height_m * 0.2, self.config.area_height_m * 0.8)
-                x1 = self.rng.uniform(0.0, self.config.area_width_m * 0.35)
-                x2 = self.rng.uniform(self.config.area_width_m * 0.65, self.config.area_width_m)
-                self.walls.append(WallSegment(x1, y, x2, y, self.config.wall_attenuation_db))
-
     def _build_theoretical_links(self) -> None:
         self.theoretical_link_pdr.clear()
         self.theoretical_mean_rx_dbm.clear()
@@ -163,7 +145,6 @@ class LocalizationSimulator:
                     tx_power_dbm=self.config.tx_power_dbm,
                     tx_pos=self.nodes[i].position,
                     rx_pos=self.nodes[j].position,
-                    walls=self.walls,
                 )
                 pdr = self.link_success_probability(i, j)
                 self.theoretical_mean_rx_dbm[(i, j)] = mean_rx
@@ -182,7 +163,6 @@ class LocalizationSimulator:
                 tx_power_dbm=self.config.tx_power_dbm,
                 tx_pos=tx_pos,
                 rx_pos=Position(max(distance_m, 1e-6), 0.0),
-                walls=[],
             )
 
         if prob(1e-6) < target:
@@ -204,7 +184,6 @@ class LocalizationSimulator:
             tx_power_dbm=self.config.tx_power_dbm,
             tx_pos=self.nodes[i].position,
             rx_pos=self.nodes[j].position,
-            walls=self.walls,
         )
 
     @staticmethod
@@ -220,7 +199,6 @@ class LocalizationSimulator:
             tx_power_dbm=self.config.tx_power_dbm,
             tx_pos=self.nodes[sender_id].position,
             rx_pos=self.nodes[receiver_id].position,
-            walls=self.walls,
         )
 
     def link_pdr_between(self, sender_id: int, receiver_id: int) -> float:
@@ -267,11 +245,6 @@ class LocalizationSimulator:
             success=success,
             rx_power_dbm=rx_power,
             distance_m=self.nodes[sender_id].position.distance_to(self.nodes[receiver_id].position),
-            wall_loss_db=self.channel.wall_loss(
-                self.nodes[sender_id].position,
-                self.nodes[receiver_id].position,
-                self.walls,
-            ),
         )
 
     def theoretical_neighbor_edges(self) -> set[tuple[int, int]]:
@@ -330,7 +303,6 @@ class LocalizationSimulator:
                     tx_power_dbm=self.config.tx_power_dbm,
                     tx_pos=self.nodes[other].position,
                     rx_pos=self.nodes[sender_id].position,
-                    walls=self.walls,
                 )
                 if sensed >= threshold:
                     clear = False
@@ -727,7 +699,6 @@ class LocalizationSimulator:
             "area_height_m": self.config.area_height_m,
             "slot_duration_s": self.config.slot_duration_s,
             "simulated_seconds": self.current_slot * self.config.slot_duration_s,
-            "wall_count": len(self.walls),
             "half_success_distance_m": self.half_success_distance_m,
             "wireless_isolation_distance_m": self.wireless_isolation_distance_m,
             "avg_degree": avg_degree,

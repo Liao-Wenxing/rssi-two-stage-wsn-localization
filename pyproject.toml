@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cml-wls-wsn"
+name = "rssi-two-stage-wsn-localization"
 version = "1.0.0"
 description = "Censoring-aware uncertainty-weighted RSSI localization for static wireless sensor networks"
 readme = "README.md"

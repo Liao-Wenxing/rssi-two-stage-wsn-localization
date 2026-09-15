@@ -45,6 +45,7 @@ class LinkWindow:
     edge: Edge
     received_rssi_dbm: tuple[float, ...]
     transmitted: int
+    packet_rssi_dbm: tuple[float | None, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +120,7 @@ def generate_link_windows(positions: np.ndarray, config: AccuracyConfig, seed: i
             static_bias = bias_rng.gauss(0.0, config.static_bias_sigma_db)
             state = packet_rng.gauss(0.0, config.fast_sigma_db)
             received: list[float] = []
+            packet_observations: list[float | None] = []
             for _ in range(config.hello_count):
                 innovation = packet_rng.gauss(0.0, config.fast_sigma_db)
                 rho = min(max(config.fast_correlation, -0.999), 0.999)
@@ -128,9 +130,17 @@ def generate_link_windows(positions: np.ndarray, config: AccuracyConfig, seed: i
                 independent_success = packet_rng.random() >= config.base_loss_probability
                 if decoded and independent_success:
                     received.append(rssi)
+                    packet_observations.append(rssi)
+                else:
+                    packet_observations.append(None)
             if len(received) >= minimum_samples:
                 edge = (i, j)
-                windows[edge] = LinkWindow(edge, tuple(received), config.hello_count)
+                windows[edge] = LinkWindow(
+                    edge,
+                    tuple(received),
+                    config.hello_count,
+                    tuple(packet_observations),
+                )
     return windows
 
 
@@ -161,13 +171,22 @@ def estimate_ranges(
     reports: dict[Edge, RangeReport] = {}
     for edge, window in windows.items():
         values = list(window.received_rssi_dbm)
-        if method == "CML":
+        if method in {"CML", "CML-Ind", "CML-HAC", "CML-Selected"}:
+            uncertainty_mode = "hac" if method == "CML-HAC" else "independent"
+            minimum_received = (
+                max(1, math.ceil(config.minimum_reception_ratio * config.hello_count))
+                if method == "CML-Selected"
+                else None
+            )
             result = estimate_censored_rssi(
                 values,
                 window.transmitted,
                 config.fast_sigma_db,
                 config.receiver_threshold_dbm,
                 config.base_loss_probability,
+                packet_observations=window.packet_rssi_dbm or None,
+                uncertainty_mode=uncertainty_mode,
+                minimum_received_for_selection=minimum_received,
             )
             latent_rssi = result.mean_dbm
             rssi_se = result.standard_error_db

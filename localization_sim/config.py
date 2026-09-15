@@ -23,7 +23,6 @@ class LocalizationSimConfig:
 
     # Local neighbor discovery and localization upload traffic.
     localization_round_start_slot: int = 1
-    localization_report_spread_slots: int = 4000  # legacy jitter knob
     localization_reports_per_node: int | None = None
     localization_hello_interval_s: float = 1.0
     localization_hello_window_count: int = 10
@@ -62,19 +61,13 @@ class LocalizationSimConfig:
     wireless_isolation_distance_m: float | None = None
     channel_id: int = 0
 
-    # MAC model. The simulator defaults to simple slotted collision for
-    # backward compatibility; CSMA/CA can be enabled in later network runs.
-    mac_model: str = "slotted"  # "slotted" or "csma_ca"
+    # MAC access model used by the event-driven collection simulator.
+    mac_model: str = "csma_ca"  # "slotted" or "csma_ca"
     csma_min_be: int = 3
     csma_max_be: int = 5
     csma_max_backoffs: int = 4
     csma_cca_range_m: float | None = None
     csma_cca_threshold_dbm: float | None = None
-
-    # Simplified indoor wall model.
-    enable_walls: bool = True
-    random_wall_count: int = 4
-    wall_attenuation_db: float = 5.0
 
     def sink_position(self) -> tuple[float, float]:
         x = self.area_width_m / 2.0 if self.sink_x_m is None else self.sink_x_m

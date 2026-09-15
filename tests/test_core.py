@@ -7,6 +7,7 @@ import numpy as np
 
 from localization_sim.accuracy import AccuracyConfig, run_trial
 from localization_sim.global_nls import estimate_positions, unknown_node_rmse
+from localization_sim.rssi_estimators import estimate_censored_rssi
 
 
 def test_global_estimator_has_no_truth_argument() -> None:
@@ -43,3 +44,36 @@ def test_unanchored_component_is_rejected() -> None:
         assert "not connected" in str(error)
     else:
         raise AssertionError("unanchored components must not be localized")
+
+
+def test_hac_uncertainty_uses_ordered_packet_sequence() -> None:
+    observations = [-82.0, -81.4, None, -80.9, None, -82.2, -81.8, None]
+    received = [value for value in observations if value is not None]
+    result = estimate_censored_rssi(
+        received,
+        len(observations),
+        3.5,
+        -84.0,
+        0.02,
+        packet_observations=observations,
+        uncertainty_mode="hac",
+    )
+    assert math.isfinite(result.mean_dbm)
+    assert result.standard_error_db == result.hac_standard_error_db
+    assert result.independent_standard_error_db > 0.0
+    assert result.hac_bandwidth >= 1
+
+
+def test_selection_corrected_cml_is_finite() -> None:
+    observations = [-82.0, -81.7, -81.4, None, -82.1, None, -81.9, -82.3]
+    received = [value for value in observations if value is not None]
+    result = estimate_censored_rssi(
+        received,
+        len(observations),
+        3.5,
+        -84.0,
+        0.02,
+        packet_observations=observations,
+        minimum_received_for_selection=4,
+    )
+    assert math.isfinite(result.mean_dbm)

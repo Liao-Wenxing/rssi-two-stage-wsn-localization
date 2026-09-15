@@ -9,7 +9,6 @@ def test_received_hello_rssi_respects_receiver_threshold() -> None:
         area_height_m=50.0,
         num_sensor_nodes=10,
         seed=77,
-        enable_walls=False,
         mac_model="csma_ca",
         localization_reports_per_node=1,
     )

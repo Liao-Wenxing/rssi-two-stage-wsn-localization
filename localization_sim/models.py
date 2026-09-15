@@ -21,15 +21,6 @@ class Position:
         return hypot(self.x - other.x, self.y - other.y)
 
 
-@dataclass(frozen=True, slots=True)
-class WallSegment:
-    x1: float
-    y1: float
-    x2: float
-    y2: float
-    attenuation_db: float
-
-
 @dataclass(slots=True)
 class RouteEntry:
     dest_id: int

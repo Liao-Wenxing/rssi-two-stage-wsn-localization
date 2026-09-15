@@ -71,6 +71,7 @@ def estimate_positions(
     weighted: bool = False,
     max_iterations: int = 24,
     damping: float = 1e-1,
+    initial_positions: np.ndarray | None = None,
 ) -> GlobalNlsResult:
     """Estimate positions from reports and known anchors without truth coordinates."""
     if not ranges:
@@ -90,8 +91,13 @@ def estimate_positions(
     if missing:
         raise ValueError(f"nodes are not connected to any anchor: {missing}")
     start_time = time.perf_counter()
-    initial = classical_mds(shortest_path_matrix(node_count, ranges))
-    positions = align_to_anchors(initial, anchors)
+    if initial_positions is None:
+        initial = classical_mds(shortest_path_matrix(node_count, ranges))
+        positions = align_to_anchors(initial, anchors)
+    else:
+        if initial_positions.shape != (node_count, 2):
+            raise ValueError("initial_positions must have shape (node_count, 2)")
+        positions = initial_positions.astype(float, copy=True)
     for node_id, coordinate in anchors.items():
         positions[node_id] = coordinate
 
