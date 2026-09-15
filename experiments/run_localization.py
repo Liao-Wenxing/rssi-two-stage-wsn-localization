@@ -418,7 +418,7 @@ def run_all(base: AccuracyConfig, output: Path, workers: int) -> None:
                 SEED_BASE + offset,
                 "hello",
                 float(value),
-                ("Mean", "Median", "Trimmed", "PDR-RSSI", "CML-Ind"),
+                ("Mean", "Median", "Trimmed", "PDR-RSSI", "CML"),
             )
             for offset in range(30)
         )

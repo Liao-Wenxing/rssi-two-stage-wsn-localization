@@ -38,6 +38,7 @@ COLORS = {
     "Median": "#56B4E9",
     "Trimmed": "#009E73",
     "PDR-RSSI": "#D55E00",
+    "CML": "#E69F00",
     "CML-Ind": "#E69F00",
     "CML-HAC": "#CC79A7",
 }
@@ -183,9 +184,25 @@ def plot_results(local_rows, global_rows, references, output: Path) -> None:
         }
     )
     fig, axis = plt.subplots(figsize=(4.5, 3.0))
-    for index, method in enumerate(("Mean", "Median", "Trimmed", "PDR-RSSI", "CML-Ind")):
-        x, y, error = series(local_rows, "hello", "method", method, "local_rmse_m")
-        axis.errorbar(x, y, yerr=error, marker=MARKERS[index], capsize=2, color=COLORS[method], label=method)
+    local_cml_method = "CML" if any(row["method"] == "CML" for row in local_rows) else "CML-Ind"
+    local_methods = (
+        ("Mean", "Mean"),
+        ("Median", "Median"),
+        ("Trimmed", "Trimmed"),
+        ("PDR-RSSI", "PDR-RSSI"),
+        (local_cml_method, "CML"),
+    )
+    for index, (data_method, display_method) in enumerate(local_methods):
+        x, y, error = series(local_rows, "hello", "method", data_method, "local_rmse_m")
+        axis.errorbar(
+            x,
+            y,
+            yerr=error,
+            marker=MARKERS[index],
+            capsize=2,
+            color=COLORS[display_method],
+            label=display_method,
+        )
     ref = sorted((row for row in references if row["sweep"] == "hello"), key=lambda row: float(row["x"]))
     axis.plot(
         [float(row["x"]) for row in ref],
@@ -215,6 +232,10 @@ def plot_results(local_rows, global_rows, references, output: Path) -> None:
         capsize=2,
         label="Empirical RMSE",
     )
+    uncertainty_labels = {
+        "CML-Ind": "Independent-curvature sigma",
+        "CML-HAC": "HAC sigma",
+    }
     for method, marker in (("CML-Ind", "s"), ("CML-HAC", "^")):
         selected = sorted(
             (row for row in local_rows if row["sweep"] == "correlation" and row["method"] == method),
@@ -227,7 +248,7 @@ def plot_results(local_rows, global_rows, references, output: Path) -> None:
             color=COLORS[method],
             marker=marker,
             capsize=2,
-            label=f"{method} reported sigma",
+            label=uncertainty_labels[method],
         )
     axes[0].set_xlabel("Packet correlation coefficient")
     axes[0].set_ylabel("Range error / uncertainty (m)")
@@ -283,10 +304,17 @@ def build_tables(local_rows, global_rows, paired_rows, output: Path) -> None:
         "Estimator & RMSE (m) & Bias (m) & Reported $\\sigma$ (m) & Calibration \\\\",
         "\\midrule",
     ]
-    for method in ("Mean", "Median", "Trimmed", "PDR-RSSI", "CML-Ind"):
-        row = next(item for item in local if item["method"] == method)
+    local_cml_method = "CML" if any(row["method"] == "CML" for row in local) else "CML-Ind"
+    for data_method, display_method in (
+        ("Mean", "Mean"),
+        ("Median", "Median"),
+        ("Trimmed", "Trimmed"),
+        ("PDR-RSSI", "PDR-RSSI"),
+        (local_cml_method, "CML"),
+    ):
+        row = next(item for item in local if item["method"] == data_method)
         lines.append(
-            f"{method} & {fmt(row, 'local_rmse_m')} & {float(row['local_bias_m_mean']):.2f} & "
+            f"{display_method} & {fmt(row, 'local_rmse_m')} & {float(row['local_bias_m_mean']):.2f} & "
             f"{float(row['reported_sigma_rms_m_mean']):.2f} & {float(row['calibration_ratio_mean']):.2f} \\\\"
         )
     lines.extend(["\\bottomrule", "\\end{tabular}"])
